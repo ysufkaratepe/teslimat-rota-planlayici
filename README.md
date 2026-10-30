@@ -1,34 +1,34 @@
-# Teslimat Rota Planlayıcı
+# Delivery Route Planner
 
 ![test](https://github.com/ysufkaratepe/teslimat-rota-planlayici/actions/workflows/test.yml/badge.svg)
 
-Bir depodan çıkıp tüm teslimat noktalarına uğrayan ve depoya geri dönen **kısa bir rota** hesaplayan Python projesi.
+A Python project that calculates a **short route** that leaves a depot, visits every delivery stop and returns to the depot.
 
-2026 yazında Almanya'nın Worms şehrinde Amazon paketleri dağıtan bir kurye olarak çalıştım. Her gün dolu bir araç ve sıkı bir zaman planıyla çalışırken teslimatları hangi sırayla yapmam gerektiğini düşünürdüm. Bu proje, o günlük problemi bilgisayar mühendisliğinde öğrendiğim yöntemlerle çözme denemem.
+In summer 2026 I worked as a delivery driver for Amazon packages in Worms, Germany. Driving a full van on a tight schedule every day, I kept thinking about the best order to make the deliveries. This project is my attempt to solve that everyday problem with what I'm learning in computer engineering.
 
 <p align="center">
-  <img src="docs/ornek_rota.svg" alt="En yakın komşu ve 2-opt rotalarının karşılaştırması" width="760">
+  <img src="docs/ornek_rota.svg" alt="Comparison of the nearest-neighbour and 2-opt routes" width="760">
 </p>
 
-*Solda en yakın komşu yöntemiyle bulunan rota, sağda 2-opt ile iyileştirilmiş hali. Birbirini kesen yollar ortadan kalkıyor ve rota yaklaşık %10 kısalıyor.*
+*Left: the route found by the nearest-neighbour method. Right: the same route improved with 2-opt. The crossing paths disappear and the route becomes about 10% shorter.*
 
-## Problem
+## The problem
 
-Bu problem bilgisayar biliminde **Gezgin Satıcı Problemi** (Traveling Salesman Problem) olarak bilinir. Durak sayısı arttıkça tüm sıralamaları denemek imkânsızlaşır: sadece 15 durak için yaklaşık 43 milyar farklı sıralama vardır. Bu yüzden proje, hızlı ve iyi sonuç veren iki sezgisel yöntem kullanır:
+This is known in computer science as the **Traveling Salesman Problem**. As the number of stops grows, trying every possible order quickly becomes impossible: with just 15 stops there are about 43 billion different orders. So the project uses two fast heuristics that give good results:
 
-1. **En yakın komşu:** Her adımda henüz gidilmemiş en yakın durağa gider. Çok hızlıdır ama rota genelde en iyisinden uzundur.
-2. **2-opt iyileştirmesi:** Rotadaki iki yolu seçer; bunları çapraz bağlayıp aradaki kısmı ters çevirmek rotayı kısaltıyorsa değişikliği yapar. Kazanç kalmayana kadar tekrarlanır. Bu işlem özellikle birbirini kesen yolları çözer.
+1. **Nearest neighbour:** at each step, go to the closest stop that hasn't been visited yet. Very fast, but the route is usually longer than the best one.
+2. **2-opt improvement:** pick two edges of the route; if reconnecting them crosswise and reversing the part in between makes the route shorter, apply the change. Repeat until no improvement is left. This is especially good at removing crossing paths.
 
-Mesafeler, iki koordinat arasındaki kuş uçuşu mesafeyi veren **haversine formülü** ile hesaplanır.
+Distances are calculated with the **haversine formula**, which gives the straight-line distance between two coordinates on the Earth's surface.
 
-## Kullanım
+## Usage
 
 ```bash
 pip install -r requirements.txt
 python -m rota ornek_veri/worms_duraklar.csv --grafik rota.png
 ```
 
-Örnek çıktı:
+Sample output (the program's messages are in Turkish):
 
 ```
 13 teslimat noktasi, depo: Depo (Worms merkez)
@@ -44,7 +44,7 @@ Onerilen sira:
    ...
 ```
 
-Kendi duraklarınızı kullanmak için `ad,enlem,boylam` sütunlu bir CSV dosyası hazırlayın. İlk satır depo, yani başlangıç noktası olarak kabul edilir.
+To use your own stops, create a CSV file with `ad,enlem,boylam` (name, latitude, longitude) columns. The first row is treated as the depot (starting point).
 
 ```csv
 ad,enlem,boylam
@@ -52,38 +52,38 @@ Depo,49.6320,8.3590
 Herrnsheim,49.6560,8.3410
 ```
 
-> Örnek veri, Worms'taki semtlerin yaklaşık merkez koordinatlarından oluşur. Gerçek teslimat adresi içermez.
+> The sample data uses approximate center coordinates of neighbourhoods in Worms. It contains no real delivery addresses.
 
-## Testler
+## Tests
 
 ```bash
 pip install -r requirements-dev.txt
 pytest -v
 ```
 
-Testler; mesafe hesabını (İstanbul–Ankara gibi bilinen bir mesafeyle), her durağa tam bir kez uğranıp depoya dönüldüğünü, 2-opt'un rotayı hiçbir zaman uzatmadığını ve küçük örneklerde tüm sıralamaları deneyen kaba kuvvet çözümüne en fazla %10 uzaklıkta kaldığını kontrol eder. Her yüklemede GitHub Actions ile Windows ve Linux'ta, Python 3.10 ve 3.12 üzerinde çalışır.
+The tests check the distance calculation (against a known distance such as Istanbul–Ankara), that every stop is visited exactly once and the route returns to the depot, that 2-opt never makes a route longer, and that on small examples it stays within 10% of a brute-force solution that tries every order. They run on every push with GitHub Actions on Windows and Linux, with Python 3.10 and 3.12.
 
-## Proje yapısı
+## Project structure
 
 ```
 rota/
-  model.py         Durak veri yapısı
-  mesafe.py        Haversine mesafesi ve mesafe matrisi
-  algoritmalar.py  En yakın komşu, 2-opt ve kaba kuvvet
-  veri.py          CSV okuma ve doğrulama
-  gorsel.py        Matplotlib ile rota grafiği
-  __main__.py      Komut satırı arayüzü
+  model.py         Stop data structure
+  mesafe.py        Haversine distance and distance matrix
+  algoritmalar.py  Nearest neighbour, 2-opt and brute force
+  veri.py          CSV reading and validation
+  gorsel.py        Route chart with Matplotlib
+  __main__.py      Command-line interface
 tests/
   test_rota.py
 ```
 
-## Geliştirme fikirleri
+## Ideas for improvement
 
-- Kuş uçuşu yerine gerçek yol mesafeleri (OpenStreetMap / OSRM)
-- Teslimat zaman pencereleri ("bu adrese 14:00'ten önce")
-- Araç kapasitesi ve birden fazla araç (Araç Rotalama Problemi, VRP)
+- Real road distances instead of straight-line ones (OpenStreetMap / OSRM)
+- Delivery time windows ("deliver to this address before 14:00")
+- Vehicle capacity and multiple vehicles (Vehicle Routing Problem, VRP)
 
-## Geliştirici
+## Author
 
-**Yusuf Karatepe**, Bilgisayar Mühendisliği öğrencisi
+**Yusuf Karatepe**, Computer Engineering student
 [LinkedIn](https://www.linkedin.com/in/yusuf-karatepe-0720923a1/) · [GitHub](https://github.com/ysufkaratepe)
